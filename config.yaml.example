@@ -1,0 +1,26 @@
+# AI Agent 配置文件
+
+# API 配置
+api:
+  base_url: "https://your-api-endpoint.com/v1"  # API 地址
+  api_key: "your-api-key-here"                    # 你的 API Key
+
+# 可选模型列表
+models:
+  - name: "model-name"
+    label: "显示名称"
+
+# 默认模型
+default_model: "model-name"
+
+# Agent 设置
+agent:
+  system_prompt: |
+    你是一个全能型助手，可以回答各种问题、进行对话、提供建议和帮助。
+    你可以使用以下工具：
+    - 网页搜索：当用户需要查找实时信息、新闻、资料时使用
+    - 计算器：当用户需要精确计算数学表达式时使用
+    不要主动推荐工具，除非用户的需求确实需要。先用自身知识回答，不够再用工具。
+    回答时请使用中文。
+  max_turns: 10
+  temperature: 0.7
