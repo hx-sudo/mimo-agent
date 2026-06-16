@@ -81,7 +81,9 @@ default_model: "model-id"
 
 ### 3. 启动
 
-需要开两个终端：
+**方式一：开发模式（两个进程，推荐）**
+
+有热更新，改了前端代码浏览器自动刷新：
 
 ```bash
 # 终端 1：后端（端口 5000）
@@ -94,6 +96,18 @@ npm run dev
 ```
 
 浏览器打开 `http://localhost:5173`。
+
+**方式二：单进程模式**
+
+打包前端后只跑 Flask：
+
+```bash
+cd ai-agent/frontend && npm run build
+cd ../
+python app.py
+```
+
+浏览器打开 `http://localhost:5000`。改了前端代码需要重新 `npm run build`。
 
 ## 项目结构
 
