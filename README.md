@@ -10,6 +10,29 @@
 | 前端 | Vue 3 / Vite / Axios | 单页应用 |
 | AI | OpenAI 兼容 API | 支持任意兼容接口（如小米 MiMo） |
 
+## 名词解释
+
+**前端相关：**
+- **Node.js**：JavaScript 的运行环境，前端开发必须装。装完后自带 `npm` 命令
+- **npm**：Node.js 的包管理工具，类似 Python 的 `pip`，用来安装前端库
+- **package.json**：前端项目的依赖清单（类似 Python 的 `requirements.txt`），`npm install` 会根据它安装所有前端库
+- **node_modules/**：`npm install` 自动生成的文件夹，存放下载的前端库（很大，不要手动改）
+- **Vue**：前端框架，用来写网页界面。`.vue` 文件 = 一个界面组件（HTML + JS + CSS）
+- **Vite**：前端开发工具，负责启动开发服务器、热更新、打包代码。类似 Python 的 `flask run`，但是前端版
+- **Axios**：前端发 HTTP 请求的库，类似 Python 的 `requests`，用来调用后端 API
+- **vite.config.js**：Vite 的配置文件，里面配了端口号、API 代理等
+
+**后端相关：**
+- **Flask**：Python 的 Web 框架，用来搭建后端 API 服务
+- **pip**：Python 的包管理工具，用来安装 Python 库（类似应用商店）
+- **requirements.txt**：Python 项目的依赖清单，`pip install -r requirements.txt` 会一次性安装所有需要的库
+
+**通用概念：**
+- **API**：后端提供的接口，前端通过 HTTP 请求调用，拿到 JSON 数据
+- **JSON**：一种数据格式，前后端之间传数据用的，长得像 `{"name": "张三", "age": 18}`
+- **localhost**：本机地址，`localhost:5000` 就是你自己电脑上的 5000 端口
+- **Agent**：能自主使用工具完成任务的 AI 程序。普通 AI 只能聊天，Agent 能搜索、计算、调接口等
+
 ## 功能
 
 - 多轮对话 + 上下文记忆
@@ -139,6 +162,28 @@ ai-agent/
 
 ### Agent 核心循环（agent/core.py）
 
+**什么是 Agent 循环？**
+
+普通 AI 对话：用户问 → AI 答，一轮结束。
+
+Agent 能用工具，所以可能需要多轮：
+
+```
+用户：贵阳今天天气怎么样
+  ↓
+第 1 轮：LLM 思考 → 需要查天气 → 返回 tool_calls: [web_search("贵阳天气")]
+  ↓
+执行工具：web_search → 返回 "贵阳，晴，25°C"
+  ↓
+第 2 轮：LLM 拿到搜索结果 → 整理成回复 → 返回 content: "贵阳今天晴天..."
+  ↓
+结束，返回给用户
+```
+
+如果 LLM 不需要工具（比如简单聊天），第 1 轮就直接返回回复，不会循环。
+
+**流程图：**
+
 ```
 用户输入 → 追加到 messages → 调用 LLM API
                                     │
@@ -147,12 +192,26 @@ ai-agent/
               无 tool_calls                   有 tool_calls
                     │                               │
                     ▼                               ▼
-              返回回复                        执行工具
-                                              追加工具结果到 messages
-                                              继续循环（最多 max_turns 轮）
+              直接返回回复                    执行工具
+                                              把工具结果追加到 messages
+                                              回到顶部，再调一次 LLM
+                                              （最多循环 max_turns=10 次）
 ```
 
-- `self.messages`：对话历史列表，每次调 API 都带上，这就是"记忆"
+**什么是"记忆"？**
+
+LLM 本身没有记忆，每次调用都是独立的。我们的做法是：**每次发消息时，把整个对话历史一起发给 LLM**。
+
+```python
+# app.py 第 47-49 行
+agent.messages = [{"role": "system", "content": "你是助手..."}]  # 系统提示
+for msg in messages:     # 把之前的对话历史全部塞进去
+    agent.messages.append({"role": msg["role"], "content": msg["content"]})
+```
+
+LLM 看到 `messages` 里有之前的问答，就"记住"了上下文。这就是为什么我们这个有记忆，而有些 AI 没有——那些只发了当前这一句话，没带历史。
+
+- `self.messages`：对话历史列表，每次调 API 都带上
 - `max_turns`：最大循环次数（默认 10），防止死循环
 - 返回格式：`{"thinking": "推理过程", "content": "最终回复"}`
 
@@ -251,3 +310,4 @@ agent:
 - 对话记录存在 `conversations/` 目录，JSON 格式，按时间戳命名
 - 日志存在 `logs/` 目录，按日期分文件（`YYYY-MM-DD.log`）
 - `config.yaml` 在 `.gitignore` 中，不会被提交到 git
+- **超时说明**：后端 LLM 调用超时 60 秒，前端 axios 默认 30 秒。单轮对话没问题，但如果 Agent 触发多轮工具调用（最多 10 轮），总耗时可能超过 30 秒，前端会超时。目前是同步 HTTP 响应（发请求 → 等待 → 一次性返回）
