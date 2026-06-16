@@ -4,6 +4,9 @@
       {{ showThinking ? '▼' : '▶' }} 思考过程
       <pre v-if="showThinking">{{ msg.thinking }}</pre>
     </div>
+    <div v-if="msg.images && msg.images.length" class="images">
+      <img v-for="(img, i) in msg.images" :key="i" :src="img" />
+    </div>
     <div class="content">{{ msg.content }}</div>
   </div>
 </template>
@@ -55,4 +58,13 @@ const showThinking = ref(false)
   white-space: pre-wrap;
 }
 .content { white-space: pre-wrap; }
+.images {
+  margin-bottom: 8px;
+}
+.images img {
+  max-width: 200px;
+  max-height: 200px;
+  border-radius: 8px;
+  display: block;
+}
 </style>

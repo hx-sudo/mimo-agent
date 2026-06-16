@@ -6,8 +6,8 @@ export function fetchModels() {
   return api.get('/models').then(r => r.data)
 }
 
-export function sendMessage(message, messages, model) {
-  return api.post('/chat', { message, messages, model }).then(r => r.data)
+export function sendMessage(message, messages, model, images = []) {
+  return api.post('/chat', { message, messages, model, images }).then(r => r.data)
 }
 
 export function fetchConversations() {

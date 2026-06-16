@@ -33,10 +33,16 @@ class Agent:
         self.tool_schemas.append(tool.schema)
         logger.info(f"注册工具: {tool.name}")
 
-    def chat(self, user_input: str) -> dict:
+    def chat(self, user_input: str, images: list = None) -> dict:
         """与 agent 对话，返回 {"thinking": 思考过程, "content": 最终回复}"""
         logger.info(f"用户输入: {user_input[:100]}")
-        self.messages.append({"role": "user", "content": user_input})
+        if images:
+            content = [{"type": "text", "text": user_input}]
+            for img in images:
+                content.append({"type": "image_url", "image_url": {"url": img}})
+            self.messages.append({"role": "user", "content": content})
+        else:
+            self.messages.append({"role": "user", "content": user_input})
 
         for turn in range(self.max_turns):
             logger.debug(f"--- 第 {turn + 1} 轮 ---")

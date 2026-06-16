@@ -46,6 +46,7 @@ def api_chat():
     user_input = data.get("message", "")
     messages = data.get("messages", [])
     model = data.get("model", get_default_model())
+    images = data.get("images", [])
 
     if not user_input:
         return jsonify({"error": "message 不能为空"}), 400
@@ -54,9 +55,18 @@ def api_chat():
     # 恢复对话历史
     agent.messages = [{"role": "system", "content": agent.messages[0]["content"]}]
     for msg in messages:
-        agent.messages.append({"role": msg["role"], "content": msg["content"]})
+        content = msg.get("content", "")
+        msg_images = msg.get("images", [])
+        if msg_images:
+            # 多模态消息：content 改为数组格式
+            modal_content = [{"type": "text", "text": content}]
+            for img in msg_images:
+                modal_content.append({"type": "image_url", "image_url": {"url": img}})
+            agent.messages.append({"role": msg["role"], "content": modal_content})
+        else:
+            agent.messages.append({"role": msg["role"], "content": content})
 
-    result = agent.chat(user_input)
+    result = agent.chat(user_input, images=images)
     return jsonify(result)
 
 

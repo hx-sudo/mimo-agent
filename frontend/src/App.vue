@@ -63,12 +63,12 @@ async function removeConversation(id) {
   if (currentConvId.value === id) newConversation()
 }
 
-async function handleSend(text) {
+async function handleSend(text, images = []) {
   loading.value = true
-  messages.value.push({ role: 'user', content: text })
+  messages.value.push({ role: 'user', content: text, images })
 
   try {
-    const result = await sendMessage(text, messages.value, currentModel.value)
+    const result = await sendMessage(text, messages.value, currentModel.value, images)
     messages.value.push({
       role: 'assistant',
       content: result.content,
