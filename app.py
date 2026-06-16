@@ -1,5 +1,6 @@
 import json
-from flask import Flask, request, jsonify
+from pathlib import Path
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 
 from agent.core import Agent
@@ -11,8 +12,15 @@ from utils.conversation import (
     delete_conversation, generate_title, new_conversation_id,
 )
 
-app = Flask(__name__)
+DIST = Path(__file__).parent / "frontend" / "dist"
+
+app = Flask(__name__, static_folder=str(DIST / "assets"), static_url_path="/assets")
 CORS(app)
+
+
+@app.route("/")
+def index():
+    return send_from_directory(str(DIST), "index.html")
 
 
 def create_agent(model=None):
