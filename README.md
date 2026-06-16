@@ -166,26 +166,26 @@ ai-agent/
 
 普通 AI 对话：用户问 → AI 答，一轮结束。
 
-Agent 能用工具，所以可能需要多轮：
+Agent 能用工具，所以可能需要多轮。**每轮都会调一次 LLM API**：
 
 ```
 用户：贵阳今天天气怎么样
-  ↓
-第 1 轮：LLM 思考 → 需要查天气 → 返回 tool_calls: [web_search("贵阳天气")]
+
+第 1 次调 API：LLM 思考 → 需要查天气 → 返回 tool_calls: [web_search("贵阳天气")]
   ↓
 执行工具：web_search → 返回 "贵阳，晴，25°C"
   ↓
-第 2 轮：LLM 拿到搜索结果 → 整理成回复 → 返回 content: "贵阳今天晴天..."
+第 2 次调 API：LLM 拿到搜索结果 → 整理成回复 → 返回 content: "贵阳今天晴天..."
   ↓
-结束，返回给用户
+结束，返回给用户（共调了 2 次 API）
 ```
 
-如果 LLM 不需要工具（比如简单聊天），第 1 轮就直接返回回复，不会循环。
+如果 LLM 不需要工具（比如简单聊天），第 1 次就直接返回回复，只调 1 次。最多调 max_turns=10 次。
 
 **流程图：**
 
 ```
-用户输入 → 追加到 messages → 调用 LLM API
+用户输入 → 追加到 messages → 调用 LLM API（第 N 次）
                                     │
                     ┌───────────────┴───────────────┐
                     ▼                               ▼
@@ -202,14 +202,28 @@ Agent 能用工具，所以可能需要多轮：
 
 LLM 本身没有记忆，每次调用都是独立的。我们的做法是：**每次发消息时，把整个对话历史一起发给 LLM**。
 
+前端每次发消息，把整个对话数组传过来。后端这样处理：
+
 ```python
-# app.py 第 47-49 行
-agent.messages = [{"role": "system", "content": "你是助手..."}]  # 系统提示
-for msg in messages:     # 把之前的对话历史全部塞进去
-    agent.messages.append({"role": msg["role"], "content": msg["content"]})
+# app.py 第 46-49 行
+agent.messages = [
+    {"role": "system", "content": "你是助手..."}   # 系统提示（固定）
+]
+for msg in messages:                                 # 把历史全加进去
+    agent.messages.append(msg)
 ```
 
-LLM 看到 `messages` 里有之前的问答，就"记住"了上下文。这就是为什么我们这个有记忆，而有些 AI 没有——那些只发了当前这一句话，没带历史。
+最终发给 LLM 的 messages 长这样：
+```
+[system: 你是助手...]
+[user: 你好]
+[assistant: 你好！有什么可以帮你？]
+[user: 1+1等于几]        ← 这次的新消息
+```
+
+LLM 看到前面的对话，就"记住"了上下文。**技术上不难，就是多传几个元素**。
+
+**为什么有些 AI 没记忆？** 不是技术难，是成本选择。带历史 → 每次发给 LLM 的内容越来越长 → token 越多 → 越贵。很多简单应用（客服机器人、一次性问答）不需要记忆，就不传历史省钱。
 
 - `self.messages`：对话历史列表，每次调 API 都带上
 - `max_turns`：最大循环次数（默认 10），防止死循环
