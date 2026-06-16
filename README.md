@@ -320,6 +320,7 @@ agent:
 
 ## 开发备注
 
+- **开发 vs 生产**：开发时需要两个进程（Flask + Vite），这是前后端分离的标准做法。Vite 提供热更新——改了代码浏览器自动刷新。生产部署时 `npm run build` 打包成静态文件，Flask 直接托管，只需一个进程
 - Vite 开发服务器会自动代理 `/api/*` 到 Flask（端口 5000），无需处理跨域
 - 对话记录存在 `conversations/` 目录，JSON 格式，按时间戳命名
 - 日志存在 `logs/` 目录，按日期分文件（`YYYY-MM-DD.log`）
