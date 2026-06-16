@@ -1,458 +1,253 @@
-# AI Agent - 从零开始的智能助手
+# AI Agent - 智能助手
 
-一个用 Python + Streamlit 构建的对话式 AI Agent，支持工具调用和上下文记忆。适合小白学习 Agent 开发。
+一个前后端分离的对话式 AI Agent，支持工具调用和上下文记忆。
+
+## 技术栈
+
+| 层 | 技术 | 说明 |
+|---|------|------|
+| 后端 | Python 3.10+ / Flask | 提供 REST API |
+| 前端 | Vue 3 / Vite / Axios | 单页应用 |
+| AI | OpenAI 兼容 API | 支持任意兼容接口（如小米 MiMo） |
 
 ## 功能
 
-- **对话聊天**：与 AI 模型进行多轮对话，支持上下文记忆
-- **思考过程展示**：展示模型的推理过程（可折叠）
-- **网页搜索**：实时搜索互联网信息（使用百度）
-- **数学计算**：精确计算数学表达式
-- **模型选择**：支持多个模型切换
-- **对话管理**：保存、加载、删除对话历史
-- **日志记录**：所有操作自动记录到日志文件
+- 多轮对话 + 上下文记忆
+- 思考过程展示（可折叠）
+- 工具调用：网页搜索（Bing）、数学计算
+- 多模型切换
+- 对话历史管理（保存/加载/删除）
+- 加载动画（"思考中..." 闪烁点点）
+- 日志记录
 
 ## 快速开始
 
 ### 1. 安装依赖
 
 ```bash
+# 后端
 cd ai-agent
 pip install -r requirements.txt
+
+# 前端
+cd frontend
+npm install
 ```
 
 ### 2. 配置 API
 
-编辑 `config.yaml`，填入你的 API 信息：
+复制配置模板并填入你的 API 信息：
+
+```bash
+cp config.yaml.example config.yaml
+```
+
+编辑 `config.yaml`：
 
 ```yaml
 api:
-  base_url: "你的API地址"
-  api_key: "你的API密钥"
+  base_url: "https://your-api-endpoint.com/v1"
+  api_key: "your-api-key"
 
 models:
-  - name: "模型ID"
+  - name: "model-id"
     label: "显示名称"
 
-default_model: "默认模型ID"
+default_model: "model-id"
 ```
 
-### 3. 启动应用
+### 3. 启动
+
+需要开两个终端：
 
 ```bash
-streamlit run app.py
+# 终端 1：后端（端口 5000）
+cd ai-agent
+python app.py
+
+# 终端 2：前端（端口 5173）
+cd ai-agent/frontend
+npm run dev
 ```
 
-浏览器打开 `http://localhost:8501` 即可使用。
+浏览器打开 `http://localhost:5173`。
 
 ## 项目结构
 
 ```
 ai-agent/
-├── agent/              # Agent 核心逻辑
-│   └── core.py         # 核心循环：用户输入 → 调用LLM → 执行工具 → 返回结果
-├── tools/              # 工具定义
-│   ├── base.py         # 工具基类，所有工具都要继承它
-│   ├── calculator.py   # 计算器工具
-│   └── web_search.py   # 网页搜索工具
-├── utils/              # 工具函数
-│   ├── config.py       # 配置文件加载
-│   ├── conversation.py # 对话历史管理（保存/加载/删除）
-│   └── logger.py       # 日志记录
-├── conversations/      # 对话记录（JSON 文件，自动生成）
-├── app.py              # Streamlit 界面（入口文件）
-├── main.py             # 命令行界面（备选入口）
-├── config.yaml         # 配置文件（API地址、模型列表等）
-├── requirements.txt    # Python 依赖
-└── logs/               # 日志文件（自动生成）
+├── agent/                  # Agent 核心
+│   └── core.py             # LLM 调用 + 工具执行循环
+├── tools/                  # 工具定义
+│   ├── base.py             # 工具基类（ABC 抽象类）
+│   ├── calculator.py       # 计算器（eval 安全沙箱）
+│   └── web_search.py       # Bing 搜索 + HTML 解析
+├── utils/                  # 工具函数
+│   ├── config.py           # 读取 config.yaml
+│   ├── conversation.py     # 对话持久化（JSON 文件）
+│   └── logger.py           # 日志（文件 + 控制台）
+├── frontend/               # Vue 前端
+│   ├── src/
+│   │   ├── main.js         # Vue 入口
+│   │   ├── App.vue         # 主界面（状态管理 + 业务逻辑）
+│   │   ├── api.js          # 后端 API 调用（axios）
+│   │   └── components/
+│   │       ├── Sidebar.vue         # 侧边栏（对话列表 + 模型选择）
+│   │       ├── ChatWindow.vue      # 聊天区（消息列表 + 输入框 + 加载动画）
+│   │       └── MessageBubble.vue   # 消息气泡（含思考过程折叠）
+│   ├── package.json        # 前端依赖
+│   └── vite.config.js      # Vite 配置（端口 + API 代理）
+├── conversations/          # 对话记录（JSON，自动生成）
+├── logs/                   # 日志文件（自动生成）
+├── app.py                  # Flask API 入口
+├── main.py                 # 命令行入口（备选）
+├── config.yaml             # 配置文件（不提交 git）
+├── config.yaml.example     # 配置模板
+└── requirements.txt        # Python 依赖
 ```
 
-## 核心代码详解
-
-### 1. Agent 核心循环 (`agent/core.py`)
-
-这是整个项目最重要的文件。Agent 的工作流程：
+## 架构与数据流
 
 ```
-用户输入 → 存入消息列表 → 调用LLM → 判断是否需要工具 → 执行工具 → 继续对话
+浏览器                          Flask 后端
+┌──────────────────────┐      ┌──────────────────────┐
+│  App.vue             │      │  app.py              │
+│  ├─ Sidebar.vue      │ HTTP │  ├─ /api/chat         │──→ Agent.chat()
+│  ├─ ChatWindow.vue   │◄────►│  ├─ /api/models       │
+│  └─ api.js           │      │  └─ /api/conversations │
+└──────────────────────┘      └──────────────────────┘
+                                      │
+                                      ▼
+                              ┌──────────────────────┐
+                              │  agent/core.py       │
+                              │  ├─ 调用 LLM API     │
+                              │  ├─ 解析 tool_calls  │
+                              │  └─ 执行工具 → 返回  │
+                              └──────────────────────┘
 ```
+
+### 发消息流程
+
+```
+1. 用户输入 → App.vue.handleSend()
+2. 调用 api.js.sendMessage() → POST /api/chat
+3. Flask 接收 → 创建 Agent → 恢复对话历史 → 调用 agent.chat()
+4. Agent 循环：调用 LLM → 判断是否有 tool_calls → 执行工具 → 再调用 LLM
+5. 返回 {"thinking": "...", "content": "..."}
+6. 前端显示消息 + 自动保存对话
+```
+
+### Agent 核心循环（agent/core.py）
+
+```
+用户输入 → 追加到 messages → 调用 LLM API
+                                    │
+                    ┌───────────────┴───────────────┐
+                    ▼                               ▼
+              无 tool_calls                   有 tool_calls
+                    │                               │
+                    ▼                               ▼
+              返回回复                        执行工具
+                                              追加工具结果到 messages
+                                              继续循环（最多 max_turns 轮）
+```
+
+- `self.messages`：对话历史列表，每次调 API 都带上，这就是"记忆"
+- `max_turns`：最大循环次数（默认 10），防止死循环
+- 返回格式：`{"thinking": "推理过程", "content": "最终回复"}`
+
+## API 接口
+
+| 接口 | 方法 | 作用 |
+|------|------|------|
+| `/api/chat` | POST | 发消息，返回 AI 回复 |
+| `/api/models` | GET | 获取可用模型列表 |
+| `/api/conversations` | GET | 获取所有对话列表 |
+| `/api/conversations` | POST | 保存对话 |
+| `/api/conversations/<id>` | GET | 加载某个对话 |
+| `/api/conversations/<id>` | DELETE | 删除对话 |
+
+### POST /api/chat
+
+```json
+// 请求
+{
+  "message": "今天天气怎么样",
+  "messages": [{"role": "user", "content": "..."}],
+  "model": "mimo-v2.5"
+}
+
+// 响应
+{
+  "thinking": "用户问天气，我需要...",
+  "content": "今天天气晴朗..."
+}
+```
+
+## 工具系统
+
+### 工具基类（tools/base.py）
+
+所有工具继承 `BaseTool`，需要实现 4 个属性/方法：
 
 ```python
-class Agent:
-    def __init__(self, model: str):
-        # 初始化 API 客户端
-        self.client = OpenAI(
-            base_url=api_config["base_url"],
-            api_key=api_config["api_key"],
-        )
-        self.model = model
-        self.messages = []  # 对话历史
-        
-        # 系统提示词（决定AI的性格）
-        self.messages.append({
-            "role": "system", 
-            "content": "你是MiMo，全能型AI助手..."
-        })
-
-    def chat(self, user_input: str) -> dict:
-        """核心对话循环，返回 {"thinking": 思考过程, "content": 最终回复}"""
-        # 1. 把用户消息加入历史
-        self.messages.append({"role": "user", "content": user_input})
-
-        # 2. 循环调用LLM（最多10轮，防止无限循环）
-        for turn in range(self.max_turns):
-            # 调用API
-            resp = requests.post(
-                f"{self.base_url}/chat/completions",
-                json={
-                    "model": self.model,
-                    "messages": self.messages,  # 带上所有历史
-                    "tools": self.tool_schemas,  # 告诉LLM有哪些工具
-                }
-            )
-            msg = resp.json()["choices"][0]["message"]
-
-            content = msg.get("content", "") or ""
-            thinking = msg.get("reasoning_content", "") or ""
-            tool_calls = msg.get("tool_calls") or []
-
-            # 3. 判断：LLM是否要调用工具？
-            if not tool_calls:
-                # 不需要工具，直接返回回复
-                self.messages.append({"role": "assistant", "content": content})
-                return {"thinking": thinking, "content": content}
-
-            # 需要工具 → 执行工具 → 把结果喂回去 → 再问一次
-            self.messages.append({"role": "assistant", "content": content, "tool_calls": tool_calls})
-            for tc in tool_calls:
-                result = self._execute_tool(tc)
-                self.messages.append({"role": "tool", "tool_call_id": tc["id"], "content": result})
-            # 继续循环，LLM看到工具结果后会生成最终回复
-```
-
-**关键概念**：
-
-- `self.messages`：对话历史列表，每次调用API都带上，这就是"记忆"的来源
-- `tool_calls`：LLM返回的工具调用请求，格式是JSON
-- `max_turns`：最大循环次数，防止LLM一直调工具导致死循环
-- 返回格式：`{"thinking": "思考过程", "content": "最终回复"}`，思考过程来自模型的 `reasoning_content` 字段
-
-### 2. 工具基类 (`tools/base.py`)
-
-所有工具都要继承这个类，实现4个属性/方法：
-
-```python
-class BaseTool(ABC):
-    @property
-    def name(self) -> str:
-        """工具名称，LLM通过这个名字调用工具"""
-        pass
-
-    @property
-    def description(self) -> str:
-        """工具描述，告诉LLM这个工具能干什么"""
-        pass
-
-    @property
-    def parameters(self) -> dict:
-        """参数定义，JSON Schema格式，告诉LLM需要传什么参数"""
-        pass
+class MyTool(BaseTool):
+    name = "tool_name"           # 工具名，LLM 通过这个名字调用
+    description = "工具描述"      # 告诉 LLM 这个工具能干什么
+    parameters = { ... }         # 参数定义（JSON Schema 格式）
 
     def execute(self, **kwargs) -> str:
-        """执行工具，返回字符串结果"""
-        pass
-
-    @property
-    def schema(self) -> dict:
-        """自动生成LLM需要的工具定义格式"""
-        return {
-            "type": "function",
-            "function": {
-                "name": self.name,
-                "description": self.description,
-                "parameters": self.parameters,
-            }
-        }
+        return "结果字符串"
 ```
 
-### 3. 示例：计算器工具 (`tools/calculator.py`)
+`schema` 属性会自动生成 OpenAI function calling 格式的 JSON Schema。
 
-```python
-class Calculator(BaseTool):
-    @property
-    def name(self) -> str:
-        return "calculator"  # 工具名称
+### 添加新工具
 
-    @property
-    def description(self) -> str:
-        return "计算数学表达式，支持加减乘除"  # LLM看这个决定什么时候用
+1. 在 `tools/` 下新建文件，继承 `BaseTool`
+2. 在 `app.py` 的 `create_agent()` 里注册：`agent.register_tool(MyTool())`
+3. 更新 `config.yaml` 的 `system_prompt`，告诉 AI 它有这个新工具
 
-    @property
-    def parameters(self) -> dict:
-        return {
-            "type": "object",
-            "properties": {
-                "expression": {
-                    "type": "string",
-                    "description": "数学表达式，如 '2 + 3 * 4'"
-                }
-            },
-            "required": ["expression"]
-        }
+### 内置工具
 
-    def execute(self, expression: str) -> str:
-        # 只允许安全的字符
-        allowed = set("0123456789+-*/().% ")
-        if not all(c in allowed for c in expression):
-            return "错误：包含不允许的字符"
-        return str(eval(expression))  # 执行计算
-```
+| 工具 | 说明 |
+|------|------|
+| `calculator` | 数学表达式计算（字符白名单 + eval） |
+| `web_search` | Bing 搜索，正则解析 HTML 提取标题 |
 
-### 4. 界面 (`app.py`)
-
-Streamlit 的核心概念：**每次用户交互，整个脚本从头执行一遍**。
-
-```python
-import streamlit as st
-from agent.core import Agent
-
-# 页面配置
-st.set_page_config(page_title="AI Agent", layout="wide")
-
-# 侧边栏：新建对话 + 模型选择 + 对话历史
-with st.sidebar:
-    col_new, col_model = st.columns([1, 3])
-    # 新建按钮、模型下拉框、对话历史列表（点击切换，支持删除）
-
-# 初始化 Agent（用 session_state 保存状态，刷新页面不丢失）
-if "agent" not in st.session_state:
-    st.session_state.agent = Agent(model=selected_model)
-    st.session_state.agent.register_tool(Calculator())
-    st.session_state.agent.register_tool(WebSearch())
-
-# 显示历史消息（带思考过程折叠）
-for msg in st.session_state.messages:
-    with st.chat_message(msg["role"]):
-        if msg.get("thinking"):
-            with st.expander("🧠 思考过程", expanded=False):
-                st.markdown(msg["thinking"])
-        st.markdown(msg["content"])
-
-# 用户输入
-if prompt := st.chat_input("输入你的问题..."):
-    with st.chat_message("user"):
-        st.markdown(prompt)
-
-    # 调用 Agent
-    with st.chat_message("assistant"):
-        result = st.session_state.agent.chat(prompt)
-        if result.get("thinking"):
-            with st.expander("🧠 思考过程", expanded=False):
-                st.markdown(result["thinking"])
-        st.markdown(result["content"])
-
-    # 自动保存对话到 conversations/ 目录
-    save_conversation(conv_id, title, messages, model)
-```
-
-**关键概念**：
-
-- `st.session_state`：Streamlit 的状态管理，刷新页面数据不会丢
-- `st.chat_input`：底部输入框
-- `st.chat_message`：聊天气泡组件
-- `st.expander`：可折叠区域，用于展示思考过程
-
-### 5. 配置管理 (`utils/config.py`)
-
-```python
-import yaml
-
-def load_config() -> dict:
-    with open("config.yaml", "r", encoding="utf-8") as f:
-        return yaml.safe_load(f)
-
-def get_api_config() -> dict:
-    config = load_config()
-    return {
-        "base_url": config["api"]["base_url"],
-        "api_key": config["api"]["api_key"],
-    }
-```
-
-### 6. 对话管理 (`utils/conversation.py`)
-
-对话历史以 JSON 文件形式保存在 `conversations/` 目录下，文件名格式为 `YYYYMMDD_HHMMSS.json`。
-
-```python
-from utils.conversation import (
-    get_all_conversations,   # 获取所有对话列表
-    load_conversation,       # 加载单个对话
-    save_conversation,       # 保存对话
-    delete_conversation,     # 删除对话
-    generate_title,          # 根据首条消息生成标题
-    new_conversation_id,     # 生成新对话 ID
-)
-
-# 保存对话
-save_conversation("20260615_120000", "我的问题", messages, "mimo-v2.5")
-
-# 加载对话
-data = load_conversation("20260615_120000")
-# 返回 {"title": "...", "messages": [...], "model": "..."}
-```
-
-### 7. 日志记录 (`utils/logger.py`)
-
-```python
-import logging
-from datetime import datetime
-
-def get_logger(name: str) -> logging.Logger:
-    logger = logging.getLogger(name)
-    
-    # 文件日志（按日期分文件）
-    today = datetime.now().strftime("%Y-%m-%d")
-    file_handler = logging.FileHandler(f"logs/{today}.log")
-    
-    # 控制台日志
-    console_handler = logging.StreamHandler()
-    
-    logger.addHandler(file_handler)
-    logger.addHandler(console_handler)
-    return logger
-```
-
-## 如何添加新工具
-
-以添加"获取当前时间"工具为例：
-
-### 1. 创建工具文件 `tools/current_time.py`
-
-```python
-from datetime import datetime
-from tools.base import BaseTool
-
-class CurrentTime(BaseTool):
-    @property
-    def name(self) -> str:
-        return "current_time"
-
-    @property
-    def description(self) -> str:
-        return "获取当前日期和时间"
-
-    @property
-    def parameters(self) -> dict:
-        return {
-            "type": "object",
-            "properties": {},
-            "required": []
-        }
-
-    def execute(self) -> str:
-        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-```
-
-### 2. 在 `app.py` 中注册
-
-```python
-from tools.current_time import CurrentTime
-
-# 在初始化 Agent 时注册
-st.session_state.agent.register_tool(CurrentTime())
-```
-
-### 3. 更新系统提示词 (`config.yaml`)
+## 配置说明（config.yaml）
 
 ```yaml
-system_prompt: |
-  你可以使用以下工具：
-  - 网页搜索：查找实时信息
-  - 计算器：数学计算
-  - 获取时间：查看当前日期时间
+api:
+  base_url: "https://api.example.com/v1"   # OpenAI 兼容接口
+  api_key: "sk-..."                         # API 密钥
+
+models:                                     # 可选模型列表
+  - name: "model-id"                        # API 用的模型 ID
+    label: "显示名称"                        # 前端显示的名称
+
+default_model: "model-id"                   # 默认模型
+
+agent:
+  system_prompt: |                          # AI 的角色设定
+    你是一个全能型助手...
+  max_turns: 10                             # 单次对话最大工具调用轮数
+  temperature: 0.7                          # 生成温度
 ```
 
-完成！现在AI知道它有这个工具了。
+## 前端组件说明
 
-## Agent 工作流程图
+| 组件 | 职责 |
+|------|------|
+| `App.vue` | 全局状态管理：对话列表、当前消息、模型选择；处理发送/保存/删除逻辑 |
+| `Sidebar.vue` | 左侧栏：对话列表（点击切换/×删除）、模型下拉选择、新建对话按钮 |
+| `ChatWindow.vue` | 右侧聊天区：消息列表、输入框、"思考中..."加载动画 |
+| `MessageBubble.vue` | 单条消息：用户消息蓝色靠右，AI 回复灰色靠左；AI 消息可展开思考过程 |
+| `api.js` | 封装所有后端 API 调用（axios） |
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                    用户输入 "123*456等于多少"              │
-└─────────────────────────────────────────────────────────┘
-                           ↓
-┌─────────────────────────────────────────────────────────┐
-│  self.messages = [                                       │
-│    {"role": "system", "content": "你是AI助手..."},        │
-│    {"role": "user", "content": "123*456等于多少"}         │
-│  ]                                                       │
-└─────────────────────────────────────────────────────────┘
-                           ↓
-┌─────────────────────────────────────────────────────────┐
-│  调用 LLM API                                            │
-│  传入: messages + tools                                  │
-└─────────────────────────────────────────────────────────┘
-                           ↓
-┌─────────────────────────────────────────────────────────┐
-│  LLM 返回: tool_calls=[calculator(expression="123*456")]│
-│  (LLM决定调用计算器工具)                                   │
-└─────────────────────────────────────────────────────────┘
-                           ↓
-┌─────────────────────────────────────────────────────────┐
-│  执行工具: eval("123*456") = 56088                       │
-└─────────────────────────────────────────────────────────┘
-                           ↓
-┌─────────────────────────────────────────────────────────┐
-│  把工具结果加入消息历史:                                    │
-│  {"role": "tool", "content": "56088"}                    │
-└─────────────────────────────────────────────────────────┘
-                           ↓
-┌─────────────────────────────────────────────────────────┐
-│  再次调用 LLM，这次带上工具结果                             │
-│  LLM 看到结果，生成最终回复: "123×456=56088"               │
-└─────────────────────────────────────────────────────────┘
-                           ↓
-┌─────────────────────────────────────────────────────────┐
-│  返回给用户:                                              │
-│  {"thinking": "思考过程...", "content": "123×456=56088"} │
-│  + 自动保存对话到 conversations/ 目录                      │
-└─────────────────────────────────────────────────────────┘
-```
+## 开发备注
 
-## 常见问题
-
-### Q: 为什么搜索失败？
-A: 默认使用百度搜索。如果网络受限，检查 `tools/web_search.py` 中的搜索源。
-
-### Q: 如何添加更多模型？
-A: 编辑 `config.yaml` 的 `models` 列表：
-```yaml
-models:
-  - name: "模型ID"
-    label: "显示名称"
-```
-
-### Q: 日志在哪里？
-A: 在 `logs/` 目录下，按日期分文件，如 `2026-06-15.log`。
-
-### Q: 如何修改AI的性格？
-A: 编辑 `config.yaml` 中的 `system_prompt`，这是AI的"人设说明书"。
-
-### Q: 对话记录保存在哪里？
-A: 在 `conversations/` 目录下，以 JSON 格式保存，文件名为时间戳（如 `20260615_120000.json`）。可在侧边栏查看、切换和删除对话。
-
-## 技术栈
-
-- **Python 3.10+**
-- **Streamlit** - Web UI 框架
-- **OpenAI SDK** - API 调用（兼容其他 API）
-- **Requests** - HTTP 请求
-- **PyYAML** - 配置文件解析
-
-## 学习路径建议
-
-1. **先跑起来**：按快速开始步骤启动项目
-2. **理解核心循环**：重点看 `agent/core.py` 的 `chat()` 方法
-3. **添加一个工具**：按"如何添加新工具"章节操作
-4. **修改系统提示词**：改 `config.yaml` 看AI行为变化
-5. **深入学习**：研究 ReAct、Toolformer 等 Agent 论文
+- Vite 开发服务器会自动代理 `/api/*` 到 Flask（端口 5000），无需处理跨域
+- 对话记录存在 `conversations/` 目录，JSON 格式，按时间戳命名
+- 日志存在 `logs/` 目录，按日期分文件（`YYYY-MM-DD.log`）
+- `config.yaml` 在 `.gitignore` 中，不会被提交到 git

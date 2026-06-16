@@ -35,39 +35,25 @@ class WebSearch(BaseTool):
                 "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8",
             }
 
-            # 百度搜索
+            # Bing 搜索
             resp = requests.get(
-                "https://www.baidu.com/s",
-                params={"wd": query, "rn": 5},
+                "https://cn.bing.com/search",
+                params={"q": query},
                 headers=headers,
                 timeout=15,
             )
             resp.raise_for_status()
 
-            # 解析百度搜索结果
+            # 解析 Bing 搜索结果
             results = []
 
-            # 提取标题和摘要
-            # 百度结果在 class="result" 或 class="c-container" 的 div 中
-            container_pattern = re.compile(
-                r'<div[^>]*class="[^"]*c-container[^"]*"[^>]*>(.*?)</div>\s*(?=<div[^>]*class="[^"]*c-container|$)',
-                re.DOTALL,
-            )
-            title_pattern = re.compile(r'<h3[^>]*>(.*?)</h3>', re.DOTALL)
-            abstract_pattern = re.compile(
-                r'<span[^>]*class="[^"]*content-right_[^"]*"[^>]*>(.*?)</span>|'
-                r'<div[^>]*class="[^"]*c-abstract[^"]*"[^>]*>(.*?)</div>|'
-                r'<span[^>]*class="[^"]*c-color-text[^"]*"[^>]*>(.*?)</span>',
-                re.DOTALL,
-            )
+            # 提取 h2 标题（Bing 结果在 h2 标签里）
+            h2_pattern = re.compile(r'<h2[^>]*>(.*?)</h2>', re.DOTALL)
+            h2_matches = h2_pattern.findall(resp.text)
 
-            # 简单方式：提取所有 h3 标题
-            h3_pattern = re.compile(r'<h3[^>]*>(.*?)</h3>', re.DOTALL)
-            h3_matches = h3_pattern.findall(resp.text)
-
-            for i, h3 in enumerate(h3_matches[:5]):
-                clean_title = re.sub(r'<[^>]+>', '', h3).strip()
-                if clean_title:
+            for i, h2 in enumerate(h2_matches[:5]):
+                clean_title = re.sub(r'<[^>]+>', '', h2).strip()
+                if clean_title and clean_title.lower() != "相关搜索":
                     results.append(f"{i+1}. {clean_title}")
 
             if results:
