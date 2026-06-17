@@ -36,7 +36,7 @@ const showThinking = ref(false)
   border-bottom-right-radius: 4px;
 }
 .assistant {
-  background: #313244;
+  background: #45475a;
   color: #cdd6f4;
   margin-right: auto;
   border-bottom-left-radius: 4px;
