@@ -1,7 +1,7 @@
 <template>
   <div class="message" :class="msg.role">
     <div class="message-inner">
-      <div v-if="msg.thinking" class="thinking" @click="showThinking = !showThinking">
+      <div v-if="msg.role === 'assistant' && msg.thinking" class="thinking" @click="showThinking = !showThinking">
         <span class="thinking-toggle">{{ showThinking ? '▼' : '▶' }} 思考过程</span>
         <pre v-if="showThinking" class="thinking-content">{{ msg.thinking }}</pre>
       </div>
@@ -24,69 +24,71 @@ const showThinking = ref(false)
 
 <style scoped>
 .message {
-  padding: 12px 0;
-}
-.message.assistant {
-  background: #2a2a2a;
-  border-top: 1px solid #333;
-  border-bottom: 1px solid #333;
+  padding: 6px 0;
 }
 .message-inner {
-  max-width: 720px;
+  max-width: 760px;
   margin: 0 auto;
-  padding: 4px 24px;
+  padding: 0 24px;
 }
 .user .message-inner {
   display: flex;
   justify-content: flex-end;
 }
+.assistant .message-inner {
+  display: flex;
+  justify-content: flex-start;
+}
 .thinking {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 .thinking-toggle {
-  font-size: 13px;
-  color: #888;
+  font-size: 12px;
+  color: #666;
   cursor: pointer;
   user-select: none;
   transition: color 0.15s;
 }
-.thinking-toggle:hover { color: #bbb; }
+.thinking-toggle:hover { color: #999; }
 .thinking-content {
-  margin-top: 8px;
-  padding: 12px;
+  margin-top: 6px;
+  padding: 10px 12px;
   background: #1a1a1a;
   border: 1px solid #2a2a2a;
   border-radius: 8px;
-  font-size: 13px;
-  color: #999;
-  max-height: 200px;
+  font-size: 12px;
+  color: #888;
+  max-height: 180px;
   overflow-y: auto;
   white-space: pre-wrap;
   font-family: inherit;
+  line-height: 1.5;
 }
 .bubble {
   font-size: 15px;
-  line-height: 1.7;
+  line-height: 1.65;
   white-space: pre-wrap;
   word-break: break-word;
 }
 .user .bubble {
-  background: #303030;
+  background: #2f2f2f;
   color: #e8e8e8;
-  padding: 8px 12px;
-  border-radius: 12px 12px 2px 12px;
-  max-width: 70%;
+  padding: 10px 14px;
+  border-radius: 18px 18px 4px 18px;
+  max-width: 65%;
 }
 .assistant .bubble {
+  background: transparent;
   color: #d9d9d9;
+  padding: 4px 0;
 }
 .images {
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 .images img {
   max-width: 240px;
   max-height: 240px;
-  border-radius: 8px;
+  border-radius: 10px;
   display: block;
 }
 .user .images img {
