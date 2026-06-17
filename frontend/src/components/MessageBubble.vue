@@ -82,9 +82,12 @@ const showThinking = ref(false)
   align-self: flex-end;
 }
 .assistant .bubble {
+  background: #2a2a2a;
   color: #d9d9d9;
-  padding: 4px 0;
+  padding: 10px 14px;
+  border-radius: 4px 18px 18px 18px;
   align-self: flex-start;
+  max-width: 85%;
 }
 .images {
   margin-bottom: 6px;
