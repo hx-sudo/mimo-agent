@@ -98,6 +98,7 @@ const rendered = computed(() => {
   border-radius: 4px 18px 18px 18px;
   align-self: flex-start;
   max-width: 85%;
+  width: fit-content;
 }
 .assistant .bubble .content :deep(h1),
 .assistant .bubble .content :deep(h2),
