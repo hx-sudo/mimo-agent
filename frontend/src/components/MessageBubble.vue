@@ -9,17 +9,25 @@
         <div v-if="msg.images && msg.images.length" class="images">
           <img v-for="(img, i) in msg.images" :key="i" :src="img" />
         </div>
-        <div v-if="msg.content" class="content">{{ msg.content }}</div>
+        <div v-if="msg.content" class="content" v-html="rendered"></div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { marked } from 'marked'
 
-defineProps({ msg: Object })
+const props = defineProps({ msg: Object })
 const showThinking = ref(false)
+
+const rendered = computed(() => {
+  if (props.msg.role === 'assistant') {
+    return marked.parse(props.msg.content || '')
+  }
+  return props.msg.content
+})
 </script>
 
 <style scoped>
@@ -70,7 +78,6 @@ const showThinking = ref(false)
 .bubble {
   font-size: 15px;
   line-height: 1.65;
-  white-space: pre-wrap;
   word-break: break-word;
 }
 .user .bubble {
@@ -81,6 +88,9 @@ const showThinking = ref(false)
   max-width: 65%;
   align-self: flex-end;
 }
+.user .bubble .content {
+  white-space: pre-wrap;
+}
 .assistant .bubble {
   background: #2a2a2a;
   color: #d9d9d9;
@@ -88,6 +98,59 @@ const showThinking = ref(false)
   border-radius: 4px 18px 18px 18px;
   align-self: flex-start;
   max-width: 85%;
+}
+.assistant .bubble .content :deep(h1),
+.assistant .bubble .content :deep(h2),
+.assistant .bubble .content :deep(h3) {
+  margin: 12px 0 6px;
+  color: #eee;
+}
+.assistant .bubble .content :deep(h1) { font-size: 20px; }
+.assistant .bubble .content :deep(h2) { font-size: 17px; }
+.assistant .bubble .content :deep(h3) { font-size: 15px; }
+.assistant .bubble .content :deep(p) {
+  margin: 6px 0;
+}
+.assistant .bubble .content :deep(ul),
+.assistant .bubble .content :deep(ol) {
+  margin: 6px 0;
+  padding-left: 20px;
+}
+.assistant .bubble .content :deep(li) {
+  margin: 3px 0;
+}
+.assistant .bubble .content :deep(strong) {
+  color: #eee;
+}
+.assistant .bubble .content :deep(code) {
+  background: #1a1a1a;
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #e06c75;
+}
+.assistant .bubble .content :deep(pre) {
+  background: #1a1a1a;
+  padding: 12px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 8px 0;
+}
+.assistant .bubble .content :deep(pre code) {
+  background: none;
+  padding: 0;
+  color: #d9d9d9;
+}
+.assistant .bubble .content :deep(blockquote) {
+  border-left: 3px solid #555;
+  padding-left: 12px;
+  margin: 8px 0;
+  color: #999;
+}
+.assistant .bubble .content :deep(hr) {
+  border: none;
+  border-top: 1px solid #3a3a3a;
+  margin: 12px 0;
 }
 .images {
   margin-bottom: 6px;
