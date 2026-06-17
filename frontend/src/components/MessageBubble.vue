@@ -33,14 +33,17 @@ const showThinking = ref(false)
 }
 .user .message-inner {
   display: flex;
-  justify-content: flex-end;
+  flex-direction: column;
+  align-items: flex-end;
 }
 .assistant .message-inner {
   display: flex;
-  justify-content: flex-start;
+  flex-direction: column;
+  align-items: flex-start;
 }
 .thinking {
   margin-bottom: 6px;
+  width: 100%;
 }
 .thinking-toggle {
   font-size: 12px;
@@ -76,11 +79,12 @@ const showThinking = ref(false)
   padding: 10px 14px;
   border-radius: 18px 18px 4px 18px;
   max-width: 65%;
+  align-self: flex-end;
 }
 .assistant .bubble {
-  background: transparent;
   color: #d9d9d9;
   padding: 4px 0;
+  align-self: flex-start;
 }
 .images {
   margin-bottom: 6px;
