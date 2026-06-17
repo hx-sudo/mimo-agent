@@ -5,10 +5,12 @@
         <span class="thinking-toggle">{{ showThinking ? '▼' : '▶' }} 思考过程</span>
         <pre v-if="showThinking" class="thinking-content">{{ msg.thinking }}</pre>
       </div>
-      <div v-if="msg.images && msg.images.length" class="images">
-        <img v-for="(img, i) in msg.images" :key="i" :src="img" />
+      <div class="bubble">
+        <div v-if="msg.images && msg.images.length" class="images">
+          <img v-for="(img, i) in msg.images" :key="i" :src="img" />
+        </div>
+        <div v-if="msg.content" class="content">{{ msg.content }}</div>
       </div>
-      <div class="content">{{ msg.content }}</div>
     </div>
   </div>
 </template>
@@ -28,24 +30,10 @@ const showThinking = ref(false)
   max-width: 720px;
   margin: 0 auto;
   padding: 0 24px;
-  font-size: 15px;
-  line-height: 1.7;
-  white-space: pre-wrap;
-  word-break: break-word;
 }
 .user .message-inner {
   display: flex;
   justify-content: flex-end;
-}
-.user .message-inner .content {
-  background: #2f2f2f;
-  color: #ececec;
-  padding: 10px 16px;
-  border-radius: 16px 16px 4px 16px;
-  max-width: 70%;
-}
-.assistant .message-inner {
-  color: #d4d4d4;
 }
 .thinking {
   margin-bottom: 8px;
@@ -71,6 +59,22 @@ const showThinking = ref(false)
   white-space: pre-wrap;
   font-family: inherit;
 }
+.bubble {
+  font-size: 15px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.user .bubble {
+  background: #2f2f2f;
+  color: #ececec;
+  padding: 10px 16px;
+  border-radius: 16px 16px 4px 16px;
+  max-width: 70%;
+}
+.assistant .bubble {
+  color: #d4d4d4;
+}
 .images {
   margin-bottom: 8px;
 }
@@ -79,5 +83,8 @@ const showThinking = ref(false)
   max-height: 240px;
   border-radius: 8px;
   display: block;
+}
+.user .images img {
+  margin-bottom: 4px;
 }
 </style>
