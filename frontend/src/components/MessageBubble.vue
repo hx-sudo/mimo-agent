@@ -24,12 +24,17 @@ const showThinking = ref(false)
 
 <style scoped>
 .message {
-  padding: 16px 0;
+  padding: 12px 0;
+}
+.message.assistant {
+  background: #2a2a2a;
+  border-top: 1px solid #333;
+  border-bottom: 1px solid #333;
 }
 .message-inner {
   max-width: 720px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 4px 24px;
 }
 .user .message-inner {
   display: flex;
