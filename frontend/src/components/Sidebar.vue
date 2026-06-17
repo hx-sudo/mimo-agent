@@ -1,7 +1,10 @@
 <template>
   <div class="sidebar">
     <div class="sidebar-top">
-      <button class="btn-new" @click="$emit('new')">+ 新对话</button>
+      <button class="btn-new" @click="$emit('new')">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        新对话
+      </button>
       <select :value="currentModel" @change="$emit('modelChange', $event.target.value)">
         <option v-for="m in models" :key="m.name" :value="m.name">{{ m.label }}</option>
       </select>
@@ -14,7 +17,9 @@
         :class="{ active: c.id === currentId }"
       >
         <span class="conv-title" @click="$emit('select', c.id)">{{ c.title }}</span>
-        <button class="btn-del" @click="$emit('delete', c.id)">×</button>
+        <button class="btn-del" @click="$emit('delete', c.id)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
       <p v-if="!conversations.length" class="empty">暂无对话</p>
     </div>
@@ -34,11 +39,12 @@ defineEmits(['new', 'select', 'delete', 'modelChange'])
 <style scoped>
 .sidebar {
   width: 260px;
-  background: #1e1e2e;
-  color: #cdd6f4;
+  background: #171717;
+  color: #ececec;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
+  border-right: 1px solid #2a2a2a;
 }
 .sidebar-top {
   padding: 12px;
@@ -47,38 +53,47 @@ defineEmits(['new', 'select', 'delete', 'modelChange'])
   gap: 8px;
 }
 .btn-new {
-  background: #45475a;
-  color: #cdd6f4;
-  border: none;
-  padding: 8px;
-  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: transparent;
+  color: #ececec;
+  border: 1px solid #3a3a3a;
+  padding: 10px;
+  border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
+  transition: background 0.15s;
 }
-.btn-new:hover { background: #585b70; }
+.btn-new:hover { background: #2a2a2a; }
 select {
-  background: #45475a;
-  color: #cdd6f4;
-  border: none;
-  padding: 8px;
-  border-radius: 6px;
-  font-size: 14px;
+  background: #2a2a2a;
+  color: #ececec;
+  border: 1px solid #3a3a3a;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
 }
+select:focus { border-color: #555; }
 .conv-list {
   flex: 1;
   overflow-y: auto;
-  padding: 0 12px 12px;
+  padding: 4px 8px 8px;
 }
 .conv-item {
   display: flex;
   align-items: center;
-  padding: 8px 10px;
-  border-radius: 6px;
-  margin-bottom: 4px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-bottom: 2px;
   cursor: pointer;
+  transition: background 0.15s;
 }
-.conv-item:hover { background: #313244; }
-.conv-item.active { background: #45475a; }
+.conv-item:hover { background: #2a2a2a; }
+.conv-item.active { background: #333; }
 .conv-title {
   flex: 1;
   overflow: hidden;
@@ -89,11 +104,16 @@ select {
 .btn-del {
   background: none;
   border: none;
-  color: #6c7086;
-  font-size: 18px;
+  color: #666;
   cursor: pointer;
-  padding: 0 4px;
+  padding: 2px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
 }
-.btn-del:hover { color: #f38ba8; }
-.empty { color: #6c7086; font-size: 13px; text-align: center; margin-top: 20px; }
+.conv-item:hover .btn-del { opacity: 1; }
+.btn-del:hover { color: #ef4444; }
+.empty { color: #666; font-size: 13px; text-align: center; margin-top: 24px; }
 </style>
