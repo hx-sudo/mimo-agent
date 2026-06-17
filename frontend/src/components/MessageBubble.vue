@@ -66,14 +66,14 @@ const showThinking = ref(false)
   word-break: break-word;
 }
 .user .bubble {
-  background: #2f2f2f;
-  color: #ececec;
-  padding: 10px 16px;
-  border-radius: 16px 16px 4px 16px;
+  background: #303030;
+  color: #e8e8e8;
+  padding: 8px 12px;
+  border-radius: 12px 12px 2px 12px;
   max-width: 70%;
 }
 .assistant .bubble {
-  color: #d4d4d4;
+  color: #d9d9d9;
 }
 .images {
   margin-bottom: 8px;
