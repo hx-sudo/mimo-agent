@@ -1,0 +1,50 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - button "新对话" [ref=e6] [cursor=pointer]:
+        - img [ref=e7]
+        - text: 新对话
+      - combobox [ref=e8] [cursor=pointer]:
+        - option "mimo-v2.5" [selected]
+        - option "mimo-v2.5-pro"
+    - generic [ref=e9]:
+      - generic [ref=e64] [cursor=pointer]:
+        - generic [ref=e65]: 你好，测试一下
+        - button [ref=e66]:
+          - img [ref=e67]
+      - generic [ref=e10] [cursor=pointer]:
+        - generic [ref=e11]: 第一轮：这是一段用于测试记忆压缩功能的长文本，包含大量重复内...
+        - button [ref=e12]:
+          - img [ref=e13]
+      - generic [ref=e16] [cursor=pointer]:
+        - generic [ref=e17]: 将笑话
+        - button [ref=e18]:
+          - img [ref=e19]
+      - generic [ref=e22] [cursor=pointer]:
+        - generic [ref=e23]: 你好
+        - button [ref=e24]:
+          - img [ref=e25]
+      - generic [ref=e28] [cursor=pointer]:
+        - generic [ref=e29]: 你好
+        - button [ref=e30]:
+          - img [ref=e31]
+      - generic [ref=e34] [cursor=pointer]:
+        - generic [ref=e35]: 你好
+        - button [ref=e36]:
+          - img [ref=e37]
+      - generic [ref=e40] [cursor=pointer]:
+        - generic [ref=e41]: 今天星期几
+        - button [ref=e42]:
+          - img [ref=e43]
+  - generic [ref=e46]:
+    - generic [ref=e47]:
+      - generic [ref=e73]: 你好，测试一下
+      - generic [ref=e75]:
+        - generic [ref=e76]: ▶ 思考过程
+        - paragraph [ref=e79]: 你好！我很好，可以正常工作。有什么我可以帮助你的吗？😊
+    - generic [ref=e55]:
+      - button "上传图片" [ref=e56] [cursor=pointer]:
+        - img [ref=e57]
+      - textbox "发送消息..." [ref=e59]
+      - button [disabled] [ref=e60]:
+        - img [ref=e61]

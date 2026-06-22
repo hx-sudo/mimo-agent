@@ -16,6 +16,8 @@ class Agent:
         self.model = model
         self.temperature = agent_config["temperature"]
         self.max_turns = agent_config["max_turns"]
+        self.summary_token_limit = agent_config.get("summary_token_limit", 40000)
+        self.summary_keep_tokens = agent_config.get("summary_keep_tokens", 8000)
         self.messages = []
 
         # 初始化系统提示词
@@ -43,6 +45,9 @@ class Agent:
             self.messages.append({"role": "user", "content": content})
         else:
             self.messages.append({"role": "user", "content": user_input})
+
+        # 检查是否需要压缩历史
+        self._maybe_compress()
 
         for turn in range(self.max_turns):
             logger.debug(f"--- 第 {turn + 1} 轮 ---")
@@ -129,3 +134,96 @@ class Agent:
     def clear_history(self):
         self.messages = [self.messages[0]]
         logger.info("对话历史已清除")
+
+    def _estimate_tokens(self, text: str) -> int:
+        """简单估算 token 数（中文约 1.5 字/token，英文约 4 字符/token）"""
+        if not text:
+            return 0
+        cn_chars = sum(1 for c in text if '一' <= c <= '鿿')
+        other_chars = len(text) - cn_chars
+        return int(cn_chars / 1.5 + other_chars / 4) + 4  # +4 为 role/format 开销
+
+    def _messages_tokens(self, messages: list) -> int:
+        """估算消息列表的总 token 数"""
+        total = 0
+        for msg in messages:
+            content = msg.get("content", "")
+            if isinstance(content, list):
+                for part in content:
+                    if part.get("type") == "text":
+                        total += self._estimate_tokens(part.get("text", ""))
+                    elif part.get("type") == "image_url":
+                        total += 1000  # 图片固定估算 1000 token
+            else:
+                total += self._estimate_tokens(content)
+            total += 4  # role、格式开销
+        return total
+
+    def _build_summary(self, messages_to_summarize: list) -> str:
+        """调用 LLM 生成对话摘要"""
+        summary_prompt = "请将以下对话总结成一段简短的摘要，保留关键信息、用户的需求和偏好、以及重要的结论。用中文回答。"
+        summary_messages = [
+            {"role": "system", "content": summary_prompt},
+            {"role": "user", "content": json.dumps(messages_to_summarize, ensure_ascii=False, indent=2)},
+        ]
+        try:
+            resp = requests.post(
+                f"{self.base_url}/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": self.model,
+                    "messages": summary_messages,
+                    "temperature": 0.3,
+                },
+                timeout=30,
+            )
+            resp.raise_for_status()
+            result = resp.json()
+            return result["choices"][0]["message"]["content"]
+        except Exception as e:
+            logger.error(f"生成摘要失败: {e}")
+            return ""
+
+    def _maybe_compress(self):
+        """检查是否需要压缩，超过 token 限制时自动摘要"""
+        total = self._messages_tokens(self.messages)
+        if total <= self.summary_token_limit:
+            return
+
+        logger.info(f"当前 token 数: {total}，超过阈值 {self.summary_token_limit}，执行压缩")
+
+        # 从后往前保留最近的消息，直到 token 数接近 keep_tokens
+        system_msg = self.messages[0]  # system prompt 始终保留
+        remaining = self.messages[1:]  # 非 system 消息
+
+        keep_tokens = 0
+        split_idx = len(remaining)
+        for i in range(len(remaining) - 1, -1, -1):
+            msg_tokens = self._messages_tokens([remaining[i]])
+            if keep_tokens + msg_tokens > self.summary_keep_tokens:
+                split_idx = i + 1
+                break
+            keep_tokens += msg_tokens
+
+        # 没有需要压缩的部分
+        if split_idx == 0:
+            return
+
+        to_summarize = remaining[:split_idx]
+        to_keep = remaining[split_idx:]
+
+        # 生成摘要
+        summary = self._build_summary(to_summarize)
+        if not summary:
+            logger.warning("摘要生成失败，跳过压缩")
+            return
+
+        # 替换消息历史
+        summary_msg = {"role": "system", "content": f"[对话摘要] {summary}"}
+        self.messages = [system_msg, summary_msg] + to_keep
+
+        new_total = self._messages_tokens(self.messages)
+        logger.info(f"压缩完成: {total} → {new_total} token")

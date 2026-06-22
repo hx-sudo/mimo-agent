@@ -3,6 +3,11 @@ import sys
 from pathlib import Path
 from datetime import datetime
 
+# Windows 控制台默认 GBK，强制用 UTF-8 避免 emoji 编码错误
+if sys.platform == "win32":
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 LOG_DIR = Path(__file__).parent.parent / "logs"
 LOG_DIR.mkdir(exist_ok=True)
 
